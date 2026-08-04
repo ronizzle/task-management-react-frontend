@@ -29,6 +29,10 @@ export function TasksList() {
   const [batchAssignee, setBatchAssignee] = useState('');
   const [teamMembers, setTeamMembers] = useState([]);
   const [batchWorking, setBatchWorking] = useState(false);
+  const [presets, setPresets] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [showSavePreset, setShowSavePreset] = useState(false);
+  const [presetName, setPresetName] = useState('');
 
   useEffect(() => {
     if (!teamsLoading && teams.length > 0 && !teamId) {
@@ -48,6 +52,19 @@ export function TasksList() {
     laravel.get(`/teams/${teamId}`).then(({ data }) => setTeamMembers(data.members ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
+
+  useEffect(() => {
+    loadPresets();
+  }, []);
+
+  async function loadPresets() {
+    try {
+      const { data } = await laravel.get('/filter-presets');
+      setPresets(data);
+    } catch {
+      // toast already shown by interceptor
+    }
+  }
 
   // Live updates via Socket.IO — any task create/update/status-change/
   // delete/archive within the currently viewed team re-fetches the list
@@ -90,6 +107,45 @@ export function TasksList() {
       setShowNewForm(false);
       setNewTask({ title: '', description: '', priority: 'medium', due_date: '' });
       loadTasks();
+    } catch {
+      // toast already shown by interceptor
+    }
+  }
+
+  function applyPreset(presetId) {
+    setSelectedPresetId(presetId);
+    if (!presetId) return;
+    const preset = presets.find((p) => String(p.id) === presetId);
+    if (!preset) return;
+    const filters = preset.filters ?? {};
+    if (filters.team_id) setTeamId(String(filters.team_id));
+    setStatus(filters.status ?? '');
+    setPriority(filters.priority ?? '');
+  }
+
+  async function handleSavePreset(e) {
+    e.preventDefault();
+    if (!presetName.trim()) return;
+    try {
+      const { data } = await laravel.post('/filter-presets', {
+        name: presetName.trim(),
+        filters: { team_id: teamId ? Number(teamId) : undefined, status: status || undefined, priority: priority || undefined },
+      });
+      setPresets((prev) => [data, ...prev]);
+      setPresetName('');
+      setShowSavePreset(false);
+      toast.success('Filter preset saved.');
+    } catch {
+      // toast already shown by interceptor
+    }
+  }
+
+  async function handleDeletePreset(presetId) {
+    try {
+      await laravel.delete(`/filter-presets/${presetId}`);
+      setPresets((prev) => prev.filter((p) => p.id !== presetId));
+      if (selectedPresetId === String(presetId)) setSelectedPresetId('');
+      toast.success('Filter preset deleted.');
     } catch {
       // toast already shown by interceptor
     }
@@ -208,7 +264,51 @@ export function TasksList() {
           <option value="medium">Medium</option>
           <option value="high">High</option>
         </select>
+
+        <span className="border-l border-gray-300 h-8 self-center" />
+
+        <select
+          value={selectedPresetId}
+          onChange={(e) => applyPreset(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+        >
+          <option value="">Saved filters…</option>
+          {presets.map((preset) => (
+            <option key={preset.id} value={preset.id}>
+              {preset.name}
+            </option>
+          ))}
+        </select>
+        {selectedPresetId && (
+          <button
+            onClick={() => handleDeletePreset(Number(selectedPresetId))}
+            className="text-sm text-red-600 hover:underline px-1"
+          >
+            Delete
+          </button>
+        )}
+        <button
+          onClick={() => setShowSavePreset((v) => !v)}
+          className="text-sm border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50"
+        >
+          {showSavePreset ? 'Cancel' : 'Save current filters'}
+        </button>
       </div>
+
+      {showSavePreset && (
+        <form onSubmit={handleSavePreset} className="flex gap-2 mb-4">
+          <input
+            required
+            placeholder="Preset name (e.g. My urgent tasks)"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm flex-1 max-w-xs"
+          />
+          <button type="submit" className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700">
+            Save
+          </button>
+        </form>
+      )}
 
       {showNewForm && (
         <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-lg p-4 mb-6 space-y-3">
