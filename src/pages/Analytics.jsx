@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { node } from '../api/client';
-import { useAccessibleTeams } from '../api/useAccessibleTeams';
+import { node } from '@/api/client';
+import { useAccessibleTeams } from '@/api/useAccessibleTeams';
 
 export function Analytics() {
   const { teams, loading: teamsLoading } = useAccessibleTeams();

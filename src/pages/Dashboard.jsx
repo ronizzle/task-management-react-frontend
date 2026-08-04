@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { laravel } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { useAccessibleTeams } from '../api/useAccessibleTeams';
+import { laravel } from '@/api/client';
+import { useAuth } from '@/context/AuthContext';
+import { useAccessibleTeams } from '@/api/useAccessibleTeams';
 
 export function Dashboard() {
   const { user } = useAuth();

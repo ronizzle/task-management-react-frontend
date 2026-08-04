@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { laravel } from './client';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Admin/Manager can list all teams via GET /api/teams. Team Members can't

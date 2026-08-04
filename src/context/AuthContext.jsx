@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react';
-import { laravel } from '../api/client';
+import { laravel } from '@/api/client';
 
 const AuthContext = createContext(null);
 

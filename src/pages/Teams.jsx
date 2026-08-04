@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { laravel } from '../api/client';
+import { laravel } from '@/api/client';
 
 export function Teams() {
   const [teams, setTeams] = useState([]);

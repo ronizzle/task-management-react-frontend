@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { laravel } from '../api/client';
-import { useAuth } from '../context/AuthContext';
+import { laravel } from '@/api/client';
+import { useAuth } from '@/context/AuthContext';
 
 const TRANSITIONS = {
   pending: ['in_progress', 'cancelled'],

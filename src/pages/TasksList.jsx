@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { laravel, node } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { useAccessibleTeams } from '../api/useAccessibleTeams';
+import { laravel, node } from '@/api/client';
+import { useAuth } from '@/context/AuthContext';
+import { useAccessibleTeams } from '@/api/useAccessibleTeams';
 
 const STATUS_COLORS = {
   pending: 'bg-gray-100 text-gray-700',
