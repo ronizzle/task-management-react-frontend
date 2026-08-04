@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { laravel } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
+import { getSocket } from '@/lib/socket';
 
 const TRANSITIONS = {
   pending: ['in_progress', 'cancelled'],
@@ -28,6 +29,43 @@ export function TaskDetail() {
     load();
     loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Live updates via Socket.IO — see task-management-node-services'
+  // realtime layer (src/realtime/socket.js) and Laravel's
+  // App\Services\RealtimeBroadcaster, which fires these events after each
+  // relevant task/comment write.
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit('join:task', id);
+
+    const onTaskUpdated = (updated) => {
+      if (String(updated.id) === id) setTask(updated);
+    };
+    const onStatusChanged = (payload) => {
+      if (String(payload.id) === id) {
+        setTask((prev) => (prev ? { ...prev, status: payload.status } : prev));
+      }
+    };
+    const onCommentCreated = (comment) => {
+      setComments((prev) => (prev.some((c) => c.id === comment.id) ? prev : [...prev, comment]));
+    };
+    const onCommentDeleted = ({ id: commentId }) => {
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    };
+
+    socket.on('task_updated', onTaskUpdated);
+    socket.on('task_status_changed', onStatusChanged);
+    socket.on('comment_created', onCommentCreated);
+    socket.on('comment_deleted', onCommentDeleted);
+
+    return () => {
+      socket.emit('leave:task', id);
+      socket.off('task_updated', onTaskUpdated);
+      socket.off('task_status_changed', onStatusChanged);
+      socket.off('comment_created', onCommentCreated);
+      socket.off('comment_deleted', onCommentDeleted);
+    };
   }, [id]);
 
   async function load() {

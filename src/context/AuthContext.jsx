@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { laravel } from '@/api/client';
+import { disconnectSocket } from '@/lib/socket';
 
 const AuthContext = createContext(null);
 
@@ -14,6 +15,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('current_user', JSON.stringify(data.user));
     setUser(data.user);
+    // Force getSocket() to build a fresh, authenticated connection next call.
+    disconnectSocket();
   }, []);
 
   const login = useCallback(
@@ -53,6 +56,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('current_user');
     setUser(null);
+    disconnectSocket();
   }, []);
 
   const value = {

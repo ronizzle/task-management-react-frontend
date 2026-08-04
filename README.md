@@ -53,16 +53,20 @@ Team Members have no `GET /api/teams` access (Admin/Manager only per the API spe
 ## Pages
 
 - **Dashboard** — accessible teams, task counts
-- **Tasks** — team-scoped list with status/priority filters, create (Admin/Manager), CSV/JSON/XLSX export
-- **Task Detail** — view/edit, status transitions (respecting the pending→in_progress→completed state machine), delete (creator/Admin), comment thread (bonus — view/post per task-access rules, delete own comment or Admin)
+- **Tasks** — team-scoped list with status/priority filters, create (Admin/Manager), CSV/JSON/XLSX export, live updates (bonus — task create/update/status-change/delete/archive within the viewed team refreshes the list via Socket.IO, no manual reload)
+- **Task Detail** — view/edit, status transitions (respecting the pending→in_progress→completed state machine), delete (creator/Admin), comment thread (bonus — view/post per task-access rules, delete own comment or Admin), live updates (bonus — task edits/status changes and new/deleted comments from other users appear via Socket.IO without a refresh)
 - **Teams** — list, create, view/add/remove members (Admin/Manager)
 - **Users** — list, create, change role, toggle active status (Admin only)
 - **Analytics** — task summary, team productivity, upcoming deadlines, powered by the Node service (Admin/Manager only)
 - **Settings** — current account info
 
+## Real-time updates (Socket.IO, bonus)
+
+`src/lib/socket.js` maintains one shared, JWT-authenticated Socket.IO connection (reused across pages, reconnected fresh on login/logout with the current token). Task Detail joins that task's room on mount and leaves it on unmount; Tasks List joins the currently-viewed team's room and re-fetches the list on any task event in it. See `task-management-node-services`' README for the room/event design.
+
 ## Tests
 
-Manually verified end-to-end in a real browser against both running backends (login for all three roles, dashboard data, task CRUD and status transitions, team/user management, analytics, exports, and role-based route/UI gating) — no automated frontend test suite for this repo, per the build plan (PHPUnit covers Laravel, Jest covers Node). The comment thread (`npm run build` passes) is covered end-to-end at the API layer by Laravel's `TaskCommentTest`; it has not yet had a manual browser pass against a live backend.
+Manually verified end-to-end in a real browser against both running backends (login for all three roles, dashboard data, task CRUD and status transitions, team/user management, analytics, exports, and role-based route/UI gating) — no automated frontend test suite for this repo, per the build plan (PHPUnit covers Laravel, Jest covers Node). The comment thread (`npm run build` passes) is covered end-to-end at the API layer by Laravel's `TaskCommentTest`; it has not yet had a manual browser pass against a live backend. Socket.IO's underlying pipeline (Laravel write → Node broadcast → connected client receiving the event, for both the `task:{id}` and `team:{id}` rooms) was verified end-to-end with a real socket client against local Laravel/Node instances; `npm run build` passes; it has not yet had a manual two-browser-tab pass.
 
 ## Deployment
 

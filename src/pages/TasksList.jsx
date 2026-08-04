@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { laravel, node } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { useAccessibleTeams } from '@/api/useAccessibleTeams';
+import { getSocket } from '@/lib/socket';
 
 const STATUS_COLORS = {
   pending: 'bg-gray-100 text-gray-700',
@@ -32,6 +33,27 @@ export function TasksList() {
   useEffect(() => {
     if (!teamId) return;
     loadTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, status, priority]);
+
+  // Live updates via Socket.IO — any task create/update/status-change/
+  // delete/archive within the currently viewed team re-fetches the list
+  // (simpler and less error-prone than patching filtered/paginated state
+  // by hand, and these events are infrequent enough that a re-fetch is cheap).
+  useEffect(() => {
+    if (!teamId) return;
+
+    const socket = getSocket();
+    socket.emit('join:team', teamId);
+
+    const refresh = () => loadTasks();
+    const events = ['task_created', 'task_updated', 'task_status_changed', 'task_deleted', 'task_archived'];
+    events.forEach((event) => socket.on(event, refresh));
+
+    return () => {
+      socket.emit('leave:team', teamId);
+      events.forEach((event) => socket.off(event, refresh));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, status, priority]);
 
