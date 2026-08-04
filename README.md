@@ -54,7 +54,7 @@ Team Members have no `GET /api/teams` access (Admin/Manager only per the API spe
 
 - **Dashboard** — accessible teams, task counts
 - **Tasks** — team-scoped list with status/priority filters, create (Admin/Manager), CSV/JSON/XLSX export
-- **Task Detail** — view/edit, status transitions (respecting the pending→in_progress→completed state machine), delete (creator/Admin)
+- **Task Detail** — view/edit, status transitions (respecting the pending→in_progress→completed state machine), delete (creator/Admin), comment thread (bonus — view/post per task-access rules, delete own comment or Admin)
 - **Teams** — list, create, view/add/remove members (Admin/Manager)
 - **Users** — list, create, change role, toggle active status (Admin only)
 - **Analytics** — task summary, team productivity, upcoming deadlines, powered by the Node service (Admin/Manager only)
@@ -62,7 +62,7 @@ Team Members have no `GET /api/teams` access (Admin/Manager only per the API spe
 
 ## Tests
 
-Manually verified end-to-end in a real browser against both running backends (login for all three roles, dashboard data, task CRUD and status transitions, team/user management, analytics, exports, and role-based route/UI gating) — no automated frontend test suite for this repo, per the build plan (PHPUnit covers Laravel, Jest covers Node).
+Manually verified end-to-end in a real browser against both running backends (login for all three roles, dashboard data, task CRUD and status transitions, team/user management, analytics, exports, and role-based route/UI gating) — no automated frontend test suite for this repo, per the build plan (PHPUnit covers Laravel, Jest covers Node). The comment thread (`npm run build` passes) is covered end-to-end at the API layer by Laravel's `TaskCommentTest`; it has not yet had a manual browser pass against a live backend.
 
 ## Deployment
 

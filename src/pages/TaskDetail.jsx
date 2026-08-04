@@ -19,9 +19,14 @@ export function TaskDetail() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', priority: 'medium', due_date: '' });
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [newComment, setNewComment] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
 
   useEffect(() => {
     load();
+    loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -38,6 +43,43 @@ export function TaskDetail() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadComments() {
+    setCommentsLoading(true);
+    try {
+      const { data } = await laravel.get(`/tasks/${id}/comments`);
+      setComments(data);
+    } catch {
+      // toast already shown by interceptor
+    } finally {
+      setCommentsLoading(false);
+    }
+  }
+
+  async function handlePostComment(e) {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    setPostingComment(true);
+    try {
+      const { data } = await laravel.post(`/tasks/${id}/comments`, { body: newComment.trim() });
+      setComments((prev) => [...prev, data]);
+      setNewComment('');
+    } catch {
+      // toast already shown by interceptor
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      await laravel.delete(`/comments/${commentId}`);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      // toast already shown by interceptor
     }
   }
 
@@ -175,6 +217,56 @@ export function TaskDetail() {
             </div>
           </>
         )}
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mt-4">
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Comments</h2>
+
+        {commentsLoading ? (
+          <p className="text-sm text-gray-500">Loading comments…</p>
+        ) : comments.length === 0 ? (
+          <p className="text-sm text-gray-500 mb-4">No comments yet.</p>
+        ) : (
+          <ul className="space-y-3 mb-4">
+            {comments.map((comment) => (
+              <li key={comment.id} className="border-b border-gray-100 pb-3 last:border-b-0">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">{comment.user?.name ?? 'Unknown user'}</span>
+                    <span className="text-xs text-gray-400 ml-2">
+                      {new Date(comment.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  {(isAdmin || comment.user_id === user.id) && (
+                    <button
+                      onClick={() => handleDeleteComment(comment.id)}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+                <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{comment.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form onSubmit={handlePostComment} className="flex gap-2">
+          <input
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment…"
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={postingComment || !newComment.trim()}
+            className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+          >
+            Post
+          </button>
+        </form>
       </div>
     </div>
   );
