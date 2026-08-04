@@ -53,7 +53,7 @@ Team Members have no `GET /api/teams` access (Admin/Manager only per the API spe
 ## Pages
 
 - **Dashboard** — accessible teams, task counts
-- **Tasks** — team-scoped list with status/priority filters, create (Admin/Manager), CSV/JSON/XLSX export, live updates (bonus — task create/update/status-change/delete/archive within the viewed team refreshes the list via Socket.IO, no manual reload)
+- **Tasks** — team-scoped list with status/priority filters, create (Admin/Manager), CSV/JSON/XLSX export, live updates (bonus — task create/update/status-change/delete/archive within the viewed team refreshes the list via Socket.IO, no manual reload), batch operations (bonus — multi-select checkboxes, bulk status change/delete for any role, bulk assign for Admin/Manager, backed by `POST /api/tasks/batch`; partial failures — e.g. a Team Member selecting a task not assigned to them — surface as a toast with the succeeded/failed counts rather than blocking the whole batch)
 - **Task Detail** — view/edit, status transitions (respecting the pending→in_progress→completed state machine), delete (creator/Admin), comment thread (bonus — view/post per task-access rules, delete own comment or Admin), live updates (bonus — task edits/status changes and new/deleted comments from other users appear via Socket.IO without a refresh)
 - **Teams** — list, create, view/add/remove members (Admin/Manager)
 - **Users** — list, create, change role, toggle active status (Admin only)
