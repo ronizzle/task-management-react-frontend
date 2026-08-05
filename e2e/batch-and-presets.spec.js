@@ -48,7 +48,8 @@ test('saves, applies, and deletes a filter preset', async ({ page }) => {
 
   // Reset filters, then re-apply via the saved preset dropdown.
   await statusFilter.selectOption('');
-  const presetSelect = page.locator('select').nth(3);
+  // team, status, priority, assignee (admin-only), saved filters
+  const presetSelect = page.locator('select').nth(4);
   await presetSelect.selectOption({ label: presetName });
   await expect(statusFilter).toHaveValue('pending');
 

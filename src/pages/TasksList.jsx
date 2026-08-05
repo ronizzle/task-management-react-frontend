@@ -22,6 +22,7 @@ export function TasksList() {
   const [tasks, setTasks] = useState([]);
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
@@ -45,14 +46,14 @@ export function TasksList() {
 
   useEffect(() => {
     setPage(1);
-  }, [teamId, status, priority]);
+  }, [teamId, status, priority, assignedTo]);
 
   useEffect(() => {
     if (!teamId) return;
     loadTasks();
     setSelectedIds([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, status, priority, page]);
+  }, [teamId, status, priority, assignedTo, page]);
 
   useEffect(() => {
     if (!teamId || !canCreate) return;
@@ -92,13 +93,13 @@ export function TasksList() {
       events.forEach((event) => socket.off(event, refresh));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, status, priority]);
+  }, [teamId, status, priority, assignedTo]);
 
   async function loadTasks() {
     setLoading(true);
     try {
       const { data } = await laravel.get(`/teams/${teamId}/tasks`, {
-        params: { status: status || undefined, priority: priority || undefined, page },
+        params: { status: status || undefined, priority: priority || undefined, assigned_to: assignedTo || undefined, page },
       });
       setTasks(data.data ?? []);
       setLastPage(data.last_page ?? 1);
@@ -278,6 +279,20 @@ export function TasksList() {
           <option value="medium">Medium</option>
           <option value="high">High</option>
         </select>
+        {canCreate && (
+          <select
+            value={assignedTo}
+            onChange={(e) => setAssignedTo(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          >
+            <option value="">All assignees</option>
+            {teamMembers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <span className="border-l border-gray-300 h-8 self-center" />
 
