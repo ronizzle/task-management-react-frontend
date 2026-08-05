@@ -11,6 +11,9 @@ export function Users() {
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: 'team_member' });
+  const [saving, setSaving] = useState(false);
 
   const filteredUsers = users.filter((user) => {
     if (roleFilter !== 'all' && user.role !== roleFilter) return false;
@@ -61,6 +64,26 @@ export function Users() {
       toast.success(`User ${user.is_active ? 'deactivated' : 'activated'}.`);
     } catch {
       // toast already shown by interceptor
+    }
+  }
+
+  function openEdit(user) {
+    setEditingUser(user);
+    setEditForm({ name: user.name, email: user.email, role: user.role });
+  }
+
+  async function handleEditSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const { data } = await laravel.patch(`/users/${editingUser.id}`, editForm);
+      setUsers((list) => list.map((u) => (u.id === editingUser.id ? { ...u, ...data } : u)));
+      toast.success('User updated.');
+      setEditingUser(null);
+    } catch {
+      // toast already shown by interceptor
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -167,6 +190,64 @@ export function Users() {
         </div>
       )}
 
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit User</h2>
+            <form onSubmit={handleEditSave} className="flex flex-col gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  required
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="team_member">Team Member</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setEditingUser(null)}
+                  className="text-sm font-medium px-4 py-2 rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-3 items-center mb-4">
         <select
           value={roleFilter}
@@ -227,7 +308,10 @@ export function Users() {
                     {user.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2 text-right whitespace-nowrap">
+                  <button onClick={() => openEdit(user)} className="text-indigo-600 hover:underline mr-3">
+                    Edit
+                  </button>
                   <button onClick={() => handleToggleStatus(user)} className="text-indigo-600 hover:underline">
                     {user.is_active ? 'Deactivate' : 'Activate'}
                   </button>
