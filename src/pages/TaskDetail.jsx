@@ -26,10 +26,13 @@ export function TaskDetail() {
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [postingComment, setPostingComment] = useState(false);
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [statusHistoryLoading, setStatusHistoryLoading] = useState(false);
 
   useEffect(() => {
     load();
     loadComments();
+    if (canAssign) loadStatusHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -102,6 +105,20 @@ export function TaskDetail() {
     }
   }
 
+  async function loadStatusHistory() {
+    setStatusHistoryLoading(true);
+    try {
+      const { data } = await laravel.get('/activity-logs', {
+        params: { subject_type: 'task', subject_id: id, per_page: 50 },
+      });
+      setStatusHistory((data.data ?? []).filter((entry) => entry.action === 'status_changed'));
+    } catch {
+      // Managers only see their own teams' logs; a 403 here just means none to show.
+    } finally {
+      setStatusHistoryLoading(false);
+    }
+  }
+
   async function handlePostComment(e) {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -136,6 +153,7 @@ export function TaskDetail() {
       const { data } = await laravel.patch(`/tasks/${id}/status`, { status: newStatus });
       setTask(data);
       toast.success(`Status updated to ${newStatus.replace('_', ' ')}.`);
+      if (canAssign) loadStatusHistory();
     } catch {
       // toast already shown by interceptor (includes 422 invalid-transition message)
     }
@@ -286,6 +304,29 @@ export function TaskDetail() {
                 </button>
               )}
             </div>
+
+            {canAssign && (
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-900 mb-3">Status history</h2>
+                {statusHistoryLoading ? (
+                  <p className="text-sm text-gray-500">Loading status history…</p>
+                ) : statusHistory.length === 0 ? (
+                  <p className="text-sm text-gray-500">No status changes yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {statusHistory.map((entry) => (
+                      <li key={entry.id} className="text-sm text-gray-600">
+                        <span className="font-medium text-gray-900">
+                          {entry.changes?.before?.replace('_', ' ')} → {entry.changes?.after?.replace('_', ' ')}
+                        </span>{' '}
+                        by {entry.user?.name ?? 'Unknown user'}{' '}
+                        <span className="text-gray-400">{new Date(entry.created_at).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
