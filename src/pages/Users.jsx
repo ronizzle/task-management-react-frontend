@@ -7,6 +7,15 @@ export function Users() {
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'team_member' });
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filteredUsers = users.filter((user) => {
+    if (roleFilter !== 'all' && user.role !== roleFilter) return false;
+    if (statusFilter === 'active' && !user.is_active) return false;
+    if (statusFilter === 'inactive' && user.is_active) return false;
+    return true;
+  });
 
   useEffect(() => {
     loadUsers();
@@ -108,6 +117,28 @@ export function Users() {
         </form>
       )}
 
+      <div className="flex flex-wrap gap-3 items-center mb-4">
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+        >
+          <option value="all">All Roles</option>
+          <option value="team_member">Team Member</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+        >
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
       {loading ? (
         <p className="text-gray-500">Loading…</p>
       ) : (
@@ -122,7 +153,7 @@ export function Users() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr key={user.id}>
                 <td className="px-4 py-2 text-gray-900">{user.name}</td>
                 <td className="px-4 py-2 text-gray-600">{user.email}</td>
