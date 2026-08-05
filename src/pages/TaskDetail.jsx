@@ -102,7 +102,11 @@ export function TaskDetail() {
     setPostingComment(true);
     try {
       const { data } = await laravel.post(`/tasks/${id}/comments`, { body: newComment.trim() });
-      setComments((prev) => [...prev, data]);
+      // The Socket.IO 'comment_created' broadcast (fired by Laravel before
+      // it even returns this HTTP response) can beat this response back to
+      // the client, so it may have already appended the same comment —
+      // dedupe by id here the same way the socket handler does.
+      setComments((prev) => (prev.some((c) => c.id === data.id) ? prev : [...prev, data]));
       setNewComment('');
     } catch {
       // toast already shown by interceptor
