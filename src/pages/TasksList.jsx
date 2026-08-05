@@ -14,7 +14,7 @@ const STATUS_COLORS = {
 };
 
 export function TasksList() {
-  const { isTeamMember, isAdmin, isManager } = useAuth();
+  const { user, isTeamMember, isAdmin, isManager } = useAuth();
   const canCreate = isAdmin || isManager;
   const { teams, loading: teamsLoading } = useAccessibleTeams();
   const [teamId, setTeamId] = useState('');
@@ -161,6 +161,9 @@ export function TasksList() {
   function toggleSelectAll() {
     setSelectedIds((prev) => (prev.length === tasks.length ? [] : tasks.map((t) => t.id)));
   }
+
+  const canDeleteSelected =
+    isAdmin || selectedIds.every((id) => tasks.find((t) => t.id === id)?.created_by === user.id);
 
   async function runBatch(payload) {
     setBatchWorking(true);
@@ -409,13 +412,15 @@ export function TasksList() {
             </>
           )}
 
-          <button
-            disabled={batchWorking}
-            onClick={handleBatchDelete}
-            className="text-sm border border-red-300 text-red-600 bg-white rounded-md px-3 py-1.5 hover:bg-red-50 disabled:opacity-50 ml-auto"
-          >
-            Delete selected
-          </button>
+          {canDeleteSelected && (
+            <button
+              disabled={batchWorking}
+              onClick={handleBatchDelete}
+              className="text-sm border border-red-300 text-red-600 bg-white rounded-md px-3 py-1.5 hover:bg-red-50 disabled:opacity-50 ml-auto"
+            >
+              Delete selected
+            </button>
+          )}
           <button onClick={() => setSelectedIds([])} className="text-sm text-gray-500 px-2 py-1.5">
             Clear
           </button>
