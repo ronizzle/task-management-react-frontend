@@ -87,6 +87,7 @@ This suite is what caught a real bug, since fixed: `TaskDetail.jsx` could render
 
 Live on Render: **https://task-management-react-frontend-spyn.onrender.com**
 
+- Render, because it offers a free tier for Static Sites — no cost for this assessment.
 - Render Static Site. Build `npm install && npm run build`, publish directory `dist`.
 - `VITE_LARAVEL_API_URL` / `VITE_NODE_API_URL` are Vite build-time env vars pointing at the production Laravel/Node URLs above — set in Render's dashboard, baked into the build output.
 - Confirmed working against production: login for all three seeded roles, dashboard, task CRUD/status transitions, teams/users management, analytics, and CSV/JSON export.
