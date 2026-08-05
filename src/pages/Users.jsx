@@ -299,15 +299,19 @@ export function Users() {
                 <td className="px-4 py-2 text-gray-900">{user.name}</td>
                 <td className="px-4 py-2 text-gray-600">{user.email}</td>
                 <td className="px-4 py-2">
-                  <select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user, e.target.value)}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
-                  >
-                    <option value="team_member">Team Member</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
+                  {isManager ? (
+                    <span className="text-gray-600">{user.role}</span>
+                  ) : (
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user, e.target.value)}
+                      className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    >
+                      <option value="team_member">Team Member</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  )}
                 </td>
                 <td className="px-4 py-2">
                   <span
@@ -319,12 +323,16 @@ export function Users() {
                   </span>
                 </td>
                 <td className="px-4 py-2 text-right whitespace-nowrap">
-                  <button onClick={() => openEdit(user)} className="text-indigo-600 hover:underline mr-3">
-                    Edit
-                  </button>
-                  <button onClick={() => handleToggleStatus(user)} className="text-indigo-600 hover:underline">
-                    {user.is_active ? 'Deactivate' : 'Activate'}
-                  </button>
+                  {!isManager && (
+                    <>
+                      <button onClick={() => openEdit(user)} className="text-indigo-600 hover:underline mr-3">
+                        Edit
+                      </button>
+                      <button onClick={() => handleToggleStatus(user)} className="text-indigo-600 hover:underline">
+                        {user.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

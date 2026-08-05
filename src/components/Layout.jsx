@@ -26,7 +26,7 @@ export function Layout() {
                 Teams
               </NavLink>
             )}
-            {isAdmin && (
+            {(isAdmin || isManager) && (
               <NavLink to="/users" className={linkClass}>
                 Users
               </NavLink>
