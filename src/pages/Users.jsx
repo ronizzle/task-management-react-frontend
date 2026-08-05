@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { laravel } from '@/api/client';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'team_member' });
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -33,14 +35,22 @@ export function Users() {
 
   async function handleCreate(e) {
     e.preventDefault();
+    if (newUser.password !== newUser.passwordConfirmation) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+    setCreating(true);
     try {
-      await laravel.post('/users', newUser);
+      const { passwordConfirmation, ...payload } = newUser;
+      await laravel.post('/users', payload);
       toast.success('User created.');
       setShowNewForm(false);
-      setNewUser({ name: '', email: '', password: '', role: 'team_member' });
+      setNewUser({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
       loadUsers();
     } catch {
       // toast already shown by interceptor
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -69,52 +79,92 @@ export function Users() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
         <button
-          onClick={() => setShowNewForm((v) => !v)}
+          onClick={() => setShowNewForm(true)}
           className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700"
         >
-          {showNewForm ? 'Cancel' : 'New User'}
+          New User
         </button>
       </div>
 
       {showNewForm && (
-        <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex flex-wrap gap-3 items-end">
-          <input
-            required
-            placeholder="Name"
-            value={newUser.name}
-            onChange={(e) => setNewUser((u) => ({ ...u, name: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          />
-          <input
-            required
-            type="email"
-            placeholder="Email"
-            value={newUser.email}
-            onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          />
-          <input
-            required
-            type="password"
-            placeholder="Password"
-            minLength={8}
-            value={newUser.password}
-            onChange={(e) => setNewUser((u) => ({ ...u, password: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          />
-          <select
-            value={newUser.role}
-            onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          >
-            <option value="team_member">Team Member</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button type="submit" className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700">
-            Create
-          </button>
-        </form>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">New User</h2>
+            <form onSubmit={handleCreate} className="flex flex-col gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  required
+                  value={newUser.name}
+                  onChange={(e) => setNewUser((u) => ({ ...u, name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  required
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <PasswordInput
+                  required
+                  minLength={8}
+                  value={newUser.password}
+                  onChange={(e) => setNewUser((u) => ({ ...u, password: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <PasswordInput
+                  required
+                  minLength={8}
+                  value={newUser.passwordConfirmation}
+                  onChange={(e) => setNewUser((u) => ({ ...u, passwordConfirmation: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="team_member">Team Member</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  disabled={creating}
+                  onClick={() => {
+                    setShowNewForm(false);
+                    setNewUser({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
+                  }}
+                  className="text-sm font-medium px-4 py-2 rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {creating ? 'Creating…' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-wrap gap-3 items-center mb-4">
