@@ -15,11 +15,13 @@ const TRANSITIONS = {
 export function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isManager } = useAuth();
+  const canAssign = isAdmin || isManager;
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', priority: 'medium', due_date: '' });
+  const [form, setForm] = useState({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
+  const [teamMembers, setTeamMembers] = useState([]);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
@@ -78,7 +80,11 @@ export function TaskDetail() {
         description: data.description ?? '',
         priority: data.priority,
         due_date: data.due_date ? data.due_date.slice(0, 10) : '',
+        assigned_to: data.assigned_to ?? '',
       });
+      if (isAdmin || isManager) {
+        laravel.get(`/teams/${data.team_id}`).then(({ data: team }) => setTeamMembers(team.members ?? []));
+      }
     } finally {
       setLoading(false);
     }
@@ -138,7 +144,10 @@ export function TaskDetail() {
   async function handleSave(e) {
     e.preventDefault();
     try {
-      const { data } = await laravel.patch(`/tasks/${id}`, form);
+      const payload = canAssign
+        ? { ...form, assigned_to: form.assigned_to ? Number(form.assigned_to) : null }
+        : { title: form.title, description: form.description, priority: form.priority, due_date: form.due_date };
+      const { data } = await laravel.patch(`/tasks/${id}`, payload);
       setTask(data);
       setEditing(false);
       toast.success('Task updated.');
@@ -201,6 +210,20 @@ export function TaskDetail() {
                 onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm"
               />
+              {canAssign && (
+                <select
+                  value={form.assigned_to}
+                  onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="">Unassigned</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex gap-2">
               <button type="submit" className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700">
@@ -228,6 +251,12 @@ export function TaskDetail() {
               <div>
                 <dt className="text-gray-500">Due date</dt>
                 <dd className="text-gray-900">{task.due_date ? task.due_date.slice(0, 10) : 'None'}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Assignee</dt>
+                <dd className="text-gray-900">
+                  {teamMembers.find((m) => m.id === task.assigned_to)?.name ?? (task.assigned_to ? `User #${task.assigned_to}` : 'Unassigned')}
+                </dd>
               </div>
             </dl>
 

@@ -23,7 +23,7 @@ export function TasksList() {
   const [priority, setPriority] = useState('');
   const [loading, setLoading] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', due_date: '' });
+  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
   const [selectedIds, setSelectedIds] = useState([]);
   const [batchStatus, setBatchStatus] = useState('in_progress');
   const [batchAssignee, setBatchAssignee] = useState('');
@@ -102,10 +102,13 @@ export function TasksList() {
   async function handleCreate(e) {
     e.preventDefault();
     try {
-      await laravel.post(`/teams/${teamId}/tasks`, newTask);
+      await laravel.post(`/teams/${teamId}/tasks`, {
+        ...newTask,
+        assigned_to: newTask.assigned_to ? Number(newTask.assigned_to) : null,
+      });
       toast.success('Task created.');
       setShowNewForm(false);
-      setNewTask({ title: '', description: '', priority: 'medium', due_date: '' });
+      setNewTask({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
       loadTasks();
     } catch {
       // toast already shown by interceptor
@@ -341,6 +344,18 @@ export function TasksList() {
               onChange={(e) => setNewTask((t) => ({ ...t, due_date: e.target.value }))}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm"
             />
+            <select
+              value={newTask.assigned_to}
+              onChange={(e) => setNewTask((t) => ({ ...t, assigned_to: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="">Unassigned</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
           </div>
           <button type="submit" className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-indigo-700">
             Create
