@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { laravel } from '@/api/client';
+import { useAuth } from '@/context/AuthContext';
 
 export function Teams() {
+  const { isAdmin } = useAuth();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newTeamName, setNewTeamName] = useState('');
@@ -13,8 +15,8 @@ export function Teams() {
 
   useEffect(() => {
     loadTeams();
-    loadTeamMembers();
-  }, []);
+    if (isAdmin) loadTeamMembers();
+  }, [isAdmin]);
 
   async function loadTeamMembers() {
     const { data } = await laravel.get('/users', { params: { per_page: 100, role: 'team_member' } });
@@ -124,28 +126,30 @@ export function Teams() {
                       </li>
                     ))}
                   </ul>
-                  <div className="flex gap-2">
-                    <select
-                      value={newMemberId}
-                      onChange={(e) => setNewMemberId(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-56"
-                    >
-                      <option value="">Select a team member…</option>
-                      {teamMembers
-                        .filter((u) => !teamDetail.members.some((m) => m.id === u.id))
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name} ({u.email})
-                          </option>
-                        ))}
-                    </select>
-                    <button
-                      onClick={() => handleAddMember(team.id)}
-                      className="text-sm border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50"
-                    >
-                      Add member
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      <select
+                        value={newMemberId}
+                        onChange={(e) => setNewMemberId(e.target.value)}
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-56"
+                      >
+                        <option value="">Select a team member…</option>
+                        {teamMembers
+                          .filter((u) => !teamDetail.members.some((m) => m.id === u.id))
+                          .map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} ({u.email})
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        onClick={() => handleAddMember(team.id)}
+                        className="text-sm border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50"
+                      >
+                        Add member
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </li>
