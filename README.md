@@ -60,13 +60,28 @@ Team Members have no `GET /api/teams` access (Admin/Manager only per the API spe
 - **Analytics** — task summary, team productivity, upcoming deadlines, powered by the Node service (Admin/Manager only)
 - **Settings** — current account info
 
+## Notes vs. the original spec
+
+- **Export button**: the spec describes an "Export Tasks" button on the Dashboard that opens a modal with CSV/JSON/Excel options. This build puts three per-format export buttons directly on the Tasks List page instead (see "Pages" above) — same formats, same `POST /api/export/tasks`, just placed where the filtered task set a user wants to export is already in view, and simplified from a modal to direct buttons.
+- **Register page**: not one of the spec's named pages (Dashboard, Tasks List, Task Detail, Teams, Users, Analytics, Settings), but added so the required `POST /api/register` endpoint is reachable from the UI. Always creates a `team_member` — no role field is exposed or accepted.
+
 ## Real-time updates (Socket.IO, bonus)
 
 `src/lib/socket.js` maintains one shared, JWT-authenticated Socket.IO connection (reused across pages, reconnected fresh on login/logout with the current token). Task Detail joins that task's room on mount and leaves it on unmount; Tasks List joins the currently-viewed team's room and re-fetches the list on any task event in it. See `task-management-node-services`' README for the room/event design.
 
 ## Tests
 
-Manually verified end-to-end in a real browser against both running backends (login for all three roles, dashboard data, task CRUD and status transitions, team/user management, analytics, exports, and role-based route/UI gating) — no automated frontend test suite for this repo, per the build plan (PHPUnit covers Laravel, Jest covers Node). The comment thread (`npm run build` passes) is covered end-to-end at the API layer by Laravel's `TaskCommentTest`; it has not yet had a manual browser pass against a live backend. Socket.IO's underlying pipeline (Laravel write → Node broadcast → connected client receiving the event, for both the `task:{id}` and `team:{id}` rooms) was verified end-to-end with a real socket client against local Laravel/Node instances; `npm run build` passes; it has not yet had a manual two-browser-tab pass.
+Automated end-to-end coverage via Playwright (`e2e/`, Chromium): login (valid/invalid, role-based nav), task CRUD with status transitions and comments, team/user management, batch task operations, and saved filter presets — run against a real, locally running Laravel + Node stack, no mocking.
+
+```bash
+npx playwright install chromium   # once
+npm run e2e                       # headless
+npm run e2e:ui                    # interactive UI mode
+```
+
+Requires the Laravel API and Node service already running locally (Playwright only manages the React dev server itself). A `setup` project logs in as each seeded role once via the real UI and reuses that session (`e2e/.auth/*.json`) across every spec — Laravel's `/login` is throttled to 5 req/min, and logging in per test would blow through that immediately. For the same reason, running the full suite and `scripts/smoke-test.sh` back-to-back can trip Laravel's general 60-req/min API throttle too (shared across the one seeded admin session both use) — that's the rate limiter working as designed, not a suite bug; space repeated full runs out by ~60–90s.
+
+This suite is what caught a real bug, since fixed: `TaskDetail.jsx` could render a freshly-posted comment twice, because Laravel's Socket.IO broadcast for a new comment could reach the browser before the POST's own HTTP response did, and the REST-response handler appended it unconditionally instead of deduping like the socket handler already did.
 
 ## Deployment
 
