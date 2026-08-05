@@ -10,12 +10,13 @@ export function Users() {
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member', teamId: '' });
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', role: 'team_member' });
   const [saving, setSaving] = useState(false);
+  const [myTeams, setMyTeams] = useState([]);
 
   const filteredUsers = users.filter((user) => {
     if (roleFilter !== 'all' && user.role !== roleFilter) return false;
@@ -26,7 +27,8 @@ export function Users() {
 
   useEffect(() => {
     loadUsers();
-  }, []);
+    if (isManager) loadMyTeams();
+  }, [isManager]);
 
   async function loadUsers() {
     setLoading(true);
@@ -38,6 +40,13 @@ export function Users() {
     }
   }
 
+  async function loadMyTeams() {
+    const { data } = await laravel.get('/teams', { params: { per_page: 100 } });
+    const teams = data.data ?? [];
+    setMyTeams(teams);
+    setNewUser((u) => ({ ...u, teamId: teams[0]?.id ?? '' }));
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
     if (newUser.password !== newUser.passwordConfirmation) {
@@ -46,11 +55,23 @@ export function Users() {
     }
     setCreating(true);
     try {
-      const { passwordConfirmation, ...payload } = newUser;
-      await laravel.post('/users', payload);
-      toast.success('User created.');
+      const { passwordConfirmation, teamId, ...payload } = newUser;
+      const { data: createdUser } = await laravel.post('/users', payload);
+
+      if (isManager && teamId) {
+        const team = myTeams.find((t) => t.id === Number(teamId));
+        try {
+          await laravel.post(`/teams/${teamId}/members`, { user_id: createdUser.id });
+          toast.success(`User created and added to ${team?.name ?? 'the team'}.`);
+        } catch {
+          toast.error('User created, but could not be added to the team automatically. Add them from Teams.');
+        }
+      } else {
+        toast.success('User created.');
+      }
+
       setShowNewForm(false);
-      setNewUser({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
+      setNewUser({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member', teamId: myTeams[0]?.id ?? '' });
       loadUsers();
     } catch {
       // toast already shown by interceptor
@@ -175,13 +196,36 @@ export function Users() {
                   <p className="text-xs text-gray-500 mt-1">Managers can only create Team Member accounts.</p>
                 )}
               </div>
+              {isManager && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Team</label>
+                  {myTeams.length > 0 ? (
+                    <select
+                      required
+                      value={newUser.teamId}
+                      onChange={(e) => setNewUser((u) => ({ ...u, teamId: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                      {myTeams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      You aren't on any team yet, so this user can't be added to one automatically.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-2 mt-2">
                 <button
                   type="button"
                   disabled={creating}
                   onClick={() => {
                     setShowNewForm(false);
-                    setNewUser({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member' });
+                    setNewUser({ name: '', email: '', password: '', passwordConfirmation: '', role: 'team_member', teamId: myTeams[0]?.id ?? '' });
                   }}
                   className="text-sm font-medium px-4 py-2 rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-50"
                 >
