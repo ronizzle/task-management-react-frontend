@@ -130,17 +130,26 @@ export function Analytics() {
 
           <div>
             <h2 className="text-lg font-medium text-gray-900 mb-3">Upcoming deadlines (next 7 days)</h2>
-            {deadlines?.tasks.length === 0 ? (
+            {deadlines?.members.every((m) => m.tasks.length === 0) ? (
               <p className="text-gray-500">Nothing due soon.</p>
             ) : (
-              <ul className="divide-y divide-gray-200 bg-white border border-gray-200 rounded-lg">
-                {deadlines?.tasks.map((task) => (
-                  <li key={task.id} className="px-4 py-3 flex items-center justify-between text-sm">
-                    <span className="text-gray-900">{task.title}</span>
-                    <span className="text-gray-500">{task.due_date?.slice(0, 10)}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-4">
+                {deadlines?.members
+                  .filter((m) => m.tasks.length > 0)
+                  .map((member) => (
+                    <div key={member.user_id ?? 'unassigned'}>
+                      <h3 className="text-sm font-medium text-gray-700 mb-1">{member.name ?? 'Unassigned'}</h3>
+                      <ul className="divide-y divide-gray-200 bg-white border border-gray-200 rounded-lg">
+                        {member.tasks.map((task) => (
+                          <li key={task.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                            <span className="text-gray-900">{task.title}</span>
+                            <span className="text-gray-500">{task.due_date?.slice(0, 10)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
             )}
           </div>
         </div>
