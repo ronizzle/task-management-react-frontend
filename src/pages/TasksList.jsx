@@ -5,6 +5,7 @@ import { laravel, node } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { useAccessibleTeams } from '@/api/useAccessibleTeams';
 import { getSocket } from '@/lib/socket';
+import { Pagination } from '@/components/Pagination';
 
 const STATUS_COLORS = {
   pending: 'bg-gray-100 text-gray-700',
@@ -24,6 +25,8 @@ export function TasksList() {
   const [loading, setLoading] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', due_date: '', assigned_to: '' });
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [batchStatus, setBatchStatus] = useState('in_progress');
   const [batchAssignee, setBatchAssignee] = useState('');
@@ -41,11 +44,15 @@ export function TasksList() {
   }, [teams, teamsLoading, teamId]);
 
   useEffect(() => {
+    setPage(1);
+  }, [teamId, status, priority]);
+
+  useEffect(() => {
     if (!teamId) return;
     loadTasks();
     setSelectedIds([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, status, priority]);
+  }, [teamId, status, priority, page]);
 
   useEffect(() => {
     if (!teamId || !canCreate) return;
@@ -91,9 +98,10 @@ export function TasksList() {
     setLoading(true);
     try {
       const { data } = await laravel.get(`/teams/${teamId}/tasks`, {
-        params: { status: status || undefined, priority: priority || undefined },
+        params: { status: status || undefined, priority: priority || undefined, page },
       });
       setTasks(data.data ?? []);
+      setLastPage(data.last_page ?? 1);
     } finally {
       setLoading(false);
     }
@@ -469,6 +477,8 @@ export function TasksList() {
           ))}
         </ul>
       )}
+
+      <Pagination page={page} lastPage={lastPage} onChange={setPage} />
 
       {isTeamMember && <p className="text-sm text-gray-400 mt-4">You're only seeing tasks assigned to you.</p>}
     </div>

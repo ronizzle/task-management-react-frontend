@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { laravel } from '@/api/client';
 import { PasswordInput } from '@/components/PasswordInput';
+import { Pagination } from '@/components/Pagination';
 import { useAuth } from '@/context/AuthContext';
 
 export function Users() {
@@ -17,6 +18,8 @@ export function Users() {
   const [editForm, setEditForm] = useState({ name: '', email: '', role: 'team_member' });
   const [saving, setSaving] = useState(false);
   const [myTeams, setMyTeams] = useState([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   const filteredUsers = users.filter((user) => {
     if (roleFilter !== 'all' && user.role !== roleFilter) return false;
@@ -27,14 +30,19 @@ export function Users() {
 
   useEffect(() => {
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  useEffect(() => {
     if (isManager) loadMyTeams();
   }, [isManager]);
 
   async function loadUsers() {
     setLoading(true);
     try {
-      const { data } = await laravel.get('/users', { params: { per_page: 100 } });
+      const { data } = await laravel.get('/users', { params: { page, per_page: 100 } });
       setUsers(data.data ?? []);
+      setLastPage(data.last_page ?? 1);
     } finally {
       setLoading(false);
     }
@@ -383,6 +391,8 @@ export function Users() {
           </tbody>
         </table>
       )}
+
+      <Pagination page={page} lastPage={lastPage} onChange={setPage} />
     </div>
   );
 }

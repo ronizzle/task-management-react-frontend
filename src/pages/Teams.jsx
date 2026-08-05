@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { laravel } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
+import { Pagination } from '@/components/Pagination';
 
 export function Teams() {
   const { isAdmin } = useAuth();
@@ -12,9 +13,15 @@ export function Teams() {
   const [teamDetail, setTeamDetail] = useState(null);
   const [newMemberId, setNewMemberId] = useState('');
   const [teamMembers, setTeamMembers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   useEffect(() => {
     loadTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  useEffect(() => {
     if (isAdmin) loadTeamMembers();
   }, [isAdmin]);
 
@@ -26,8 +33,9 @@ export function Teams() {
   async function loadTeams() {
     setLoading(true);
     try {
-      const { data } = await laravel.get('/teams', { params: { per_page: 100 } });
+      const { data } = await laravel.get('/teams', { params: { page, per_page: 100 } });
       setTeams(data.data ?? []);
+      setLastPage(data.last_page ?? 1);
     } finally {
       setLoading(false);
     }
@@ -156,6 +164,8 @@ export function Teams() {
           ))}
         </ul>
       )}
+
+      <Pagination page={page} lastPage={lastPage} onChange={setPage} />
     </div>
   );
 }
