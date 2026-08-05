@@ -9,10 +9,17 @@ export function Teams() {
   const [expanded, setExpanded] = useState(null);
   const [teamDetail, setTeamDetail] = useState(null);
   const [newMemberId, setNewMemberId] = useState('');
+  const [teamMembers, setTeamMembers] = useState([]);
 
   useEffect(() => {
     loadTeams();
+    loadTeamMembers();
   }, []);
+
+  async function loadTeamMembers() {
+    const { data } = await laravel.get('/users', { params: { per_page: 100, role: 'team_member' } });
+    setTeamMembers(data.data ?? []);
+  }
 
   async function loadTeams() {
     setLoading(true);
@@ -118,12 +125,20 @@ export function Teams() {
                     ))}
                   </ul>
                   <div className="flex gap-2">
-                    <input
-                      placeholder="User ID to add"
+                    <select
                       value={newMemberId}
                       onChange={(e) => setNewMemberId(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-40"
-                    />
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-56"
+                    >
+                      <option value="">Select a team member…</option>
+                      {teamMembers
+                        .filter((u) => !teamDetail.members.some((m) => m.id === u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.email})
+                          </option>
+                        ))}
+                    </select>
                     <button
                       onClick={() => handleAddMember(team.id)}
                       className="text-sm border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50"
