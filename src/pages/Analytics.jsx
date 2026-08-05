@@ -5,6 +5,8 @@ import { useAccessibleTeams } from '@/api/useAccessibleTeams';
 export function Analytics() {
   const { teams, loading: teamsLoading } = useAccessibleTeams();
   const [teamId, setTeamId] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [summary, setSummary] = useState(null);
   const [productivity, setProductivity] = useState(null);
   const [deadlines, setDeadlines] = useState(null);
@@ -20,13 +22,15 @@ export function Analytics() {
     if (!teamId) return;
     loadAnalytics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId]);
+  }, [teamId, dateFrom, dateTo]);
 
   async function loadAnalytics() {
     setLoading(true);
     try {
       const [summaryRes, productivityRes, deadlinesRes] = await Promise.all([
-        node.get('/analytics/task-summary', { params: { team_id: teamId } }),
+        node.get('/analytics/task-summary', {
+          params: { team_id: teamId, date_from: dateFrom || undefined, date_to: dateTo || undefined },
+        }),
         node.get('/analytics/team-productivity', { params: { team_id: teamId } }),
         node.get('/analytics/upcoming-deadlines', { params: { team_id: teamId, within_hours: 168 } }),
       ]);
@@ -40,19 +44,53 @@ export function Analytics() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
-        <select
-          value={teamId}
-          onChange={(e) => setTeamId(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-        >
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1 text-sm text-gray-600">
+            From
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              max={dateTo || undefined}
+              className="border border-gray-300 rounded-md px-2 py-2 text-sm"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-sm text-gray-600">
+            To
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              min={dateFrom || undefined}
+              className="border border-gray-300 rounded-md px-2 py-2 text-sm"
+            />
+          </label>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFrom('');
+                setDateTo('');
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Clear
+            </button>
+          )}
+          <select
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          >
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading || !summary ? (
